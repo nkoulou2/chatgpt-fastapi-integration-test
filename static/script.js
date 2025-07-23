@@ -46,7 +46,7 @@ function handleKeyDown(event) {
 function sendMessage() {
     const message = userInput.value.trim();
     
-    if (message === '') return;
+    if (message === '') return; // Function ends early if nothing in text box (prevents from sending)
     
     // Add user message to chat
     addMessage(message, 'user');
@@ -60,8 +60,8 @@ function sendMessage() {
     
     // Simulate AI response delay
     setTimeout(async () => {
-        hideLoading();
         await generateAIResponse(message);
+        hideLoading();
     }, 500 + Math.random() * 1000); // Random delay between 0.5-1.5 seconds
 }
 
@@ -99,20 +99,20 @@ async function generateAIResponse(userMessage) {
         const response = await fetch(`${API_BASE_URL}/chat`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json', // Sets content type to JSON
             },
-            body: JSON.stringify({
+            body: JSON.stringify({ // Converts JS object to JSON with userMessage variable and timestamp
                 message: userMessage,
                 timestamp: new Date().toISOString()
             })
         });
 
-        if (!response.ok) {
+        if (!response.ok) { // true for 200-299 HTTP Statuses (success)
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        addMessage(data.response, 'bot');
+        const data = await response.json(); // parses JSON in JS object
+        addMessage(data.response, 'bot'); // get response part of ChatResponse Pydantic class 
         
         // Optional: Log processing time for debugging
         console.log(`Response generated in ${data.processing_time}s`);
@@ -167,4 +167,4 @@ sendButton.addEventListener('mouseleave', () => {
 });
 
 // Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeChatbot);
+document.addEventListener('DOMContentLoaded', initializeChatbot); // run first function when DOM loads that initializes Chatbot

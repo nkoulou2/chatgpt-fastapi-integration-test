@@ -1,2 +1,5 @@
 .env
 notes.txt
+og.py
+LoginData.db
+database.py
