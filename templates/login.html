@@ -18,6 +18,9 @@
             padding: 5px;
             margin: 5px;
         }
+        #errorMsg {
+            color: red;
+        }
         .login-container {
             background: white;
             padding: 2rem;
@@ -51,7 +54,7 @@
     </style>
 </head>
 <body>
-    <form class="login-container" method="post" action="/login">
+    <form class="login-container" id="loginForm" method="post" action="/login"> 
         <h2>Login</h2>
         <label for="email">Email:</label>
         <input type="email" id="email" name="email" placeholder="Enter Email" required />
@@ -59,7 +62,8 @@
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" placeholder="Enter Password" required />
 
-        <button type="submit">Login</button>
+        <button type="submit" id="loginButton">Login</button>
+        <p id="errorMsg"></p>
         <p>Don't Have an Account? <a href='/signup'>Sign Up Now</a></p>
         <p>OR <a href='/home'>Continue as Guest</a></p>
     </form>

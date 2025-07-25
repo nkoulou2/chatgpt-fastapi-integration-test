@@ -4,7 +4,6 @@ const userInput = document.getElementById('userInput');
 const sendButton = document.getElementById('sendButton');
 const loadingIndicator = document.getElementById('loadingIndicator');
 
-
 // Initialize the chatbot
 async function initializeChatbot() {
     // Check backend health on startup
@@ -140,6 +139,7 @@ async function checkBackendHealth() {
     }
     return false;
 }
+
 
 // Show loading indicator
 function showLoading() {

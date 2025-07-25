@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Form, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from typing import List, Optional
@@ -12,6 +12,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import uvicorn
 import sqlite3
+import bcrypt
 
 app = FastAPI(title='OpenAI API Chatbot')
 templates = Jinja2Templates(directory='templates')
@@ -84,34 +85,45 @@ async def home(request: Request):
 async def home(request: Request):
     return templates.TemplateResponse("signup.html", {'request': request})
 
+@app.get('/login', response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse("login.html", {'request': request})
+
 
 @app.post('/login')
 async def login(email: str = Form(), password: str = Form()):
     connection = sqlite3.connect('LoginData.db')
     cursor = connection.cursor()
 
-    user = cursor.execute('SELECT * FROM USERS WHERE email=? AND password=?', (email, password)).fetchall()
-
+    user = cursor.execute('SELECT password FROM USERS WHERE email=?', (email,)).fetchall()
     connection.close()
 
-    if len(user) > 0: # type(user) != NoneType: *seems to work for fetchone not fetchall*
-        return RedirectResponse(url='/home', status_code=status.HTTP_302_FOUND)
+    if not user:
+        return RedirectResponse(url='signup', status_code=status.HTTP_302_FOUND)
+
+    hashed_password = user[0][0]
+    print (hashed_password)
+
+    if not bcrypt.checkpw(password.encode('utf-8'), hashed_password):
+        return RedirectResponse(url='login', status_code=status.HTTP_302_FOUND)
     else:
-        return RedirectResponse(url='/signup', status_code=status.HTTP_302_FOUND) # standard HTTP redirect status (default is 307 which uses same method as current function which wont be allowed)
+        return RedirectResponse(url='/home', status_code=status.HTTP_302_FOUND) # standard HTTP redirect status (default is 307 which uses same method as current function which wont be allowed)
 
 
 @app.post('/signup')
 async def signup(first_name: str = Form(), last_name: str = Form(), email: str = Form(), password: str = Form()):
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
     connection = sqlite3.connect('LoginData.db')
     cursor = connection.cursor()
 
-    user = cursor.execute('SELECT * FROM USERS WHERE email=? AND password=?', (email, password)).fetchall()
+    user = cursor.execute('SELECT * FROM USERS WHERE email=?', (email,)).fetchall() # comma must be added after email to indicate tuple not string
 
     if len(user) > 0:
         connection.close()
-        return RedirectResponse(url='/login')
+        return RedirectResponse(url='/login', status_code=status.HTTP_302_FOUND)
     else:
-        cursor.execute('INSERT INTO USERS (first_name, last_name, email, password) values(?, ?, ?, ?)', (first_name, last_name, email, password))
+        cursor.execute('INSERT INTO USERS (first_name, last_name, email, password) values(?, ?, ?, ?)', (first_name, last_name, email, hashed_password))
         connection.commit()
         connection.close()
         return RedirectResponse(url='/home', status_code=status.HTTP_302_FOUND)
