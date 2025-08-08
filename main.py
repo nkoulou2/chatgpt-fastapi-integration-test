@@ -1,18 +1,19 @@
-from fastapi import FastAPI, HTTPException, Form, Request, status
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from typing import List, Optional
 import time
 import os
-from datetime import datetime
-from openai import OpenAI
-from dotenv import load_dotenv
-import uvicorn
 import sqlite3
 import bcrypt
+
+from fastapi import FastAPI, Form, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+from dotenv import load_dotenv
+
+from chatbot import get_openai_response
 
 app = FastAPI(title='OpenAI API Chatbot')
 templates = Jinja2Templates(directory='templates')
@@ -23,19 +24,16 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, specify your frontend URL (which frontend origins can access API)
     allow_credentials=True,
-    allow_methods=["*"], # access get, post, delete, put
+    allow_methods=["*"], # access to all methods
     allow_headers=["*"],
 )
 
 load_dotenv()
-open_api_key=os.getenv("OPENAI_API_KEY")
-
-client = OpenAI(api_key=open_api_key)
+open_api_key = os.getenv("OPENAI_API_KEY")
 
 OPENAI_MODEL='gpt-4o-mini'
-MAX_TOKENS=500
 TEMPERATURE=0.7
-SYSTEM_PROMPT="""You are a helpful, friendly, and knowledgeable AI assistant. You provide accurate, helpful responses while maintaining a conversational and approachable tone. Keep your responses concise but informative. If you're unsure about something, admit it rather than guessing."""
+
 
 class ChatMessage(BaseModel):
     message: str
@@ -47,30 +45,13 @@ class ChatResponse(BaseModel):
     process_time: float
     model_used: str
 
+
+
+
+
 def get_current_timestamp():
     return datetime.now().isoformat()
 
-async def get_openai_response(user_message: str) -> str:
-
-    try:
-        messages = [{'role': 'system', 'content': SYSTEM_PROMPT}]
-        messages.append({'role': 'user', 'content': user_message})
-
-        response = client.responses.create(
-            model=OPENAI_MODEL,
-            input=messages,
-            temperature=TEMPERATURE,
-            max_output_tokens=MAX_TOKENS,
-            timeout=30
-        )
-
-        ai_response = response.output_text
-
-        return ai_response
-    except Exception as e:
-        print(f"OpenAI API Error: {str(e)}")
-        return "I'm sorry, but I'm having trouble processing your request right now. Please try again in a moment."
-    
 @app.get('/', response_class=HTMLResponse)
 async def root(request: Request):
     return templates.TemplateResponse("login.html", {'request': request})
@@ -102,7 +83,6 @@ async def login(email: str = Form(), password: str = Form()):
         return RedirectResponse(url='signup', status_code=status.HTTP_302_FOUND)
 
     hashed_password = user[0][0]
-    print (hashed_password)
 
     if not bcrypt.checkpw(password.encode('utf-8'), hashed_password):
         return RedirectResponse(url='login', status_code=status.HTTP_302_FOUND)
@@ -145,12 +125,8 @@ async def check_health():
 @app.post('/chat', response_model = ChatResponse)
 async def chat(user_message: ChatMessage):
 
-    start_time=time.time()
-    
     try:
-        if not user_message.message or not user_message.message.strip():
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
-        
+        start_time = time.time()
         ai_response = await get_openai_response(user_message.message)
 
         processing_time = time.time() - start_time
@@ -163,11 +139,9 @@ async def chat(user_message: ChatMessage):
         )
 
         return response
-    
-    except HTTPException:
-        raise
     except Exception as e:
-        # Log the error
-        print(f"Chat endpoint error: {str(e)}")
-        raise HTTPException(status_code=500, detail="An error occurred while processing your request")
+        return f"Error: {str(e)}"
+
+
+    
 

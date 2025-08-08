@@ -57,11 +57,11 @@ function sendMessage() {
     // Show loading indicator
     showLoading();
     
-    // Simulate AI response delay
+
     setTimeout(async () => {
         await generateAIResponse(message);
         hideLoading();
-    }, 500 + Math.random() * 1000); // Random delay between 0.5-1.5 seconds
+    }, 500 + Math.random() * 1000); // Random delay between 0.5-1.5 seconds 
 }
 
 // Add message to chat
@@ -88,6 +88,7 @@ function addMessage(message, sender) {
     // Scroll to bottom
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
+
 
 // API Configuration
 const API_BASE_URL = 'http://localhost:8000';
